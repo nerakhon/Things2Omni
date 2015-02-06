@@ -1,13 +1,14 @@
---------------------------------------------------
+﻿--------------------------------------------------
 --------------------------------------------------
 -- Import tasks from Things to OmniFocus
 --------------------------------------------------
 --------------------------------------------------
 --
--- Script taken from: http://forums.omnigroup.com/showthread.php?t=14846&page=2
+-- Script originally from: http://forums.omnigroup.com/showthread.php?t=14846&page=2
 --
 
 -- Added: creation date, due date, start date functionality
+-- Added: area of responsibilities 
 
 tell application "Things"
 	
@@ -20,6 +21,8 @@ tell application "Things"
 		set theCreationDate to creation date of aToDo
 		set theDueDate to due date of aToDo
 		set theStartDate to activation date of aToDo
+		
+		get properties of aToDo
 		
 		-- get dates
 		if (creation date of aToDo) is not missing value then
@@ -40,7 +43,16 @@ tell application "Things"
 		if (project of aToDo) is not missing value then
 			set theProjectName to (name of project of aToDo)
 		else
-			set theProjectName to "NoProjInThings"
+			set theProjectName to "Misc"
+		end if
+		
+		-- get areas
+		if (area of aToDo) is not missing value then
+			set theAreaName to (name of area of aToDo)
+		else if (area of project of aToDo) is not missing value then
+			set theAreaName to (name of area of project of aToDo)
+		else
+			set theAreaName to "MissingArea"
 		end if
 		
 		-- Get Contexts from tags
@@ -66,18 +78,30 @@ tell application "Things"
 					set theContext to make new context with properties {name:theContextName}
 				end if
 				
-				-- Set (or create new) project
-				if project theProjectName exists then
-					set theProject to project theProjectName
+				-- Create an area for projects and tasks
+				
+				if folder theAreaName exists then
+					set theFolder to folder theAreaName
 				else
-					set theProject to make new project with properties {name:theProjectName}
+					set theFolder to make new folder with properties {name:theAreaName}
+				end if
+				
+				-- Set (or create new) project
+				-- get properties of project theProjectName in folder theAreaName
+				
+				if project theProjectName in theFolder exists then
+					set theProject to project theProjectName in theFolder
+				else
+					tell theFolder
+						set theProject to make new project with properties {name:theProjectName}
+					end tell
 				end if
 				
 				-- Create new task
 				tell theProject
 					set newTask to make new task with properties {name:theTitle, note:theNote, context:theContext, creation date:theCreationDate}
 					
-					if (theStartDate is not missing value) then set the start date of newTask to theStartDate
+					if (theStartDate is not missing value) then set the defer date of newTask to theStartDate
 					
 					if (theDueDate is not missing value) then set the due date of newTask to theDueDate
 					
@@ -107,27 +131,3 @@ on FindContextName(tagNames)
 	return ""
 	
 end FindContextName -- End FindContextName
-
-
---------------------------------------------------
---------------------------------------------------
--- Remove the CRs from a string,
--- not used in this script,
--- carry over from prior implementation
---------------------------------------------------
---------------------------------------------------
-on ReplaceText(find, replace, subject)
-	-- Example usage
-	-- ReplaceText("Windows", "the Mac OS", "I love Windows and I will always love Windows and I have always loved Windows.")
-	
-	set prevTIDs to text item delimiters of AppleScript
-	set text item delimiters of AppleScript to find
-	set subject to text items of subject
-	
-	set text item delimiters of AppleScript to replace
-	set subject to "" & subject
-	set text item delimiters of AppleScript to prevTIDs
-	
-	return subject
-	
-end ReplaceText -- End replaceText()
